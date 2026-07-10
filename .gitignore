@@ -1,0 +1,4 @@
+# ignore all .txt files
+.txt
+# ignore all build repository files
+cmake-build-debug/*
