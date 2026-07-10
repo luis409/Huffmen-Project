@@ -1,0 +1,95 @@
+//
+// Created by gauss on 10/07/2026.
+//
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define TAM 256
+#define MAX_FREQUENCY UINT_MAX
+
+unsigned int *alloc_frequency_table();
+void initialize_frequency_table(unsigned int *frequency_table);
+void fill_frequency_table(unsigned int *frequency_table, const char *file_name);
+void display_frequency_table(unsigned int *frequency_table);
+void destroy_frequency_table(unsigned int *frequency_table);
+
+
+int main()
+{
+    unsigned int *frequency_table;
+    frequency_table = alloc_frequency_table();
+    initialize_frequency_table(frequency_table);
+
+    return 0;
+}
+
+unsigned int *alloc_frequency_table()
+{
+    unsigned int *frequency_table = (unsigned int *)malloc(sizeof(unsigned int) * TAM);
+    if (frequency_table){ return frequency_table; }
+    else
+    {
+        printf("\n\tError allocating frequency_table\n");
+        return NULL;
+    }
+}
+
+void initialize_frequency_table(unsigned int *frequency_table)
+{
+    if (!frequency_table)
+    {
+        printf("\n\tfrequency_table is NULL\n");
+        return;
+    }
+    for (unsigned int i = 0; i < TAM; i++){ frequency_table[i] = 0; }
+}
+
+void fill_frequency_table(unsigned int *frequency_table, const char *file_name)
+{
+    if (!frequency_table)
+    {
+        printf("\n\tfrequency_table is NULL\n");
+        return;
+    }
+    if (!file_name)
+    {
+        printf("\n\tfile_name is NULL\n");
+        return;
+    }
+    FILE *f = fopen(file_name, "rb");
+    if (f)
+    {
+        unsigned char byte;
+        while (fread(&byte, sizeof(unsigned char), 1, f))
+        {
+            frequency_table[byte]++;
+        }
+        fclose(f);
+    }else
+    {
+        printf("\n\tError opening file in \'fill_frequency_table\'\n");
+    }
+}
+void display_frequency_table(unsigned int *frequency_table)
+{
+    printf("\n\tDisplay Frequency Table:\n");
+    for (unsigned int i = 0; i < TAM; i++)
+    {
+        if (frequency_table[i] > 0)
+        {
+            printf("<%c> : %u\n", i, frequency_table[i]);
+        }
+    }
+}
+void destroy_frequency_table(unsigned int *frequency_table)
+{
+    free(frequency_table);
+    if (!frequency_table)
+    {
+        printf("\n\tFrequency table sucessfully destroyed\n");
+    }else
+    {
+        printf("\n\tFailed to destroy the frequency table\n");
+    }
+}
