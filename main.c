@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <string.h>
 
 #define TAM 256
 #define MAX_FREQUENCY UINT_MAX
@@ -14,7 +15,7 @@ typedef struct node
     struct node *prev;
     struct node *left;
     struct node *right;
-    char character;
+    unsigned char character;
     unsigned int frequency;
 } node_t;
 
@@ -48,11 +49,19 @@ void build_huffmen_tree_t(huffmen_tree_t *huffmen_tree, list_t *frequency_list);
 void destroy_huffmen_tree_t(huffmen_tree_t *huffmen_tree);
 void display_huffmen_tree_t(node_t *root);
 
+char ** alloc_dictionary(int height);
+int huffmen_tree_height(node_t *root, int height);
+void build_huffmen_tree_str(char ** dictionary, huffmen_tree_t *huffmen_tree, int height);
+void fill_dictionary(char **dictionary, node_t *root, char *str, int h);
+void display_dictionary(char **dictionary);
+void destroy_dictionary(char **dictionary);
+
 int main()
 {
     unsigned int *frequency_table;
     list_t *frequency_list;
     huffmen_tree_t *huffmen_tree;
+    char ** dictionary;
 
     //-------------------------- Frequency Table
     frequency_table = alloc_frequency_table();
@@ -71,11 +80,19 @@ int main()
     printf("\n\tDisplay Huffmen Tree:\n");
     display_huffmen_tree_t(huffmen_tree->root);
 
+    //-------------------------- Dictionary
+    int h = huffmen_tree_height(huffmen_tree->root, 0);
+    printf("\n\tHuffmen Tree height: %d\n", h);
+    dictionary = alloc_dictionary(h);
+    build_huffmen_tree_str(dictionary, huffmen_tree, h);
+    display_dictionary(dictionary);
+
     // ------------------------- Free memory
 
     destroy_frequency_table(frequency_table);
     destroy_frequency_list(frequency_list);
     destroy_huffmen_tree_t(huffmen_tree);
+    destroy_dictionary(dictionary);
 
     return 0;
 }
@@ -334,4 +351,60 @@ void display_huffmen_tree_t(node_t *root) {
     printf("<%c> : %u\n", root->character, root->frequency);
     display_huffmen_tree_t(root->left);
     display_huffmen_tree_t(root->right);
+}
+
+char ** alloc_dictionary(int height) {
+    char ** dictionary = (char **)malloc(sizeof(char *) * TAM);
+    if (dictionary) {
+        for (int i = 0; i < TAM; i++) {
+            dictionary[i] = calloc(height + 1, sizeof(char));
+        }
+        return dictionary;
+    }else {
+        printf("\n\tError allocation memory failed in \'alloc_dictionary\'\n");
+        return NULL;
+    }
+}
+int huffmen_tree_height(node_t *root, int height) {
+    if (root == NULL){ return height; }
+    int left_height = huffmen_tree_height(root->left, height) + 1;
+    int right_height = huffmen_tree_height(root->right, height) + 1;
+    return left_height > right_height ? left_height : right_height;
+}
+void build_huffmen_tree_str(char ** dictionary, huffmen_tree_t *huffmen_tree, int height) {
+    fill_dictionary(dictionary, huffmen_tree->root->left, "0", height);
+    fill_dictionary(dictionary, huffmen_tree->root->right, "1", height);
+}
+void fill_dictionary(char **dictionary, node_t *root, char *str, int h) {
+    if (root == NULL) { return; }
+    if (dictionary == NULL) {
+        printf("\n\tError dictionary is NULL in \'fill_dictionary\'\n");
+        return;
+    }
+    unsigned char idx = (unsigned char) root->character;
+    strcpy(dictionary[idx], str);
+
+    char *leftStr = calloc(h + 1, sizeof(char));
+    strcpy(leftStr, str);
+    char *rightStr = calloc(h + 1, sizeof(char));
+    strcpy(rightStr, str);
+
+    strcat(leftStr, "0");
+    fill_dictionary(dictionary, root->left, leftStr, h);
+    strcat(rightStr, "1");
+    fill_dictionary(dictionary, root->right, rightStr, h);
+}
+void display_dictionary(char **dictionary) {
+    printf("\n\tDisplay Dictionary :\n");
+    for (int i = 0; i < TAM; i++) {
+        if (strcmp(dictionary[i], "") != 0) {
+            printf("<%c> : %s\n", i, dictionary[i]);
+        }
+    }
+}
+void destroy_dictionary(char **dictionary) {
+    for (int i = 0; i < TAM; i++) {
+        free(dictionary[i]);
+    }
+    free(dictionary);
 }
