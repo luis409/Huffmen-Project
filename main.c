@@ -25,6 +25,11 @@ typedef struct frequency_list
     int size;
 } list_t;
 
+typedef struct frequency_tree
+{
+    struct node *root;
+} huffmen_tree_t;
+
 unsigned int *alloc_frequency_table();
 void initialize_frequency_table(unsigned int *frequency_table);
 void fill_frequency_table(unsigned int *frequency_table, const char *file_name);
@@ -38,15 +43,21 @@ void fill_frequency_list(list_t *frequency_list, unsigned int *frequency_table);
 void destroy_frequency_list(list_t *frequency_list);
 void display_frequency_list(list_t *frequency_list);
 
+huffmen_tree_t *alloc_huffmen_tree_t();
+void build_huffmen_tree_t(huffmen_tree_t *huffmen_tree, list_t *frequency_list);
+void destroy_huffmen_tree_t(huffmen_tree_t *huffmen_tree);
+void display_huffmen_tree_t(node_t *root);
+
 int main()
 {
     unsigned int *frequency_table;
     list_t *frequency_list;
+    huffmen_tree_t *huffmen_tree;
 
     //-------------------------- Frequency Table
     frequency_table = alloc_frequency_table();
     initialize_frequency_table(frequency_table);
-    fill_frequency_table(frequency_table, "test_1.txt");
+    fill_frequency_table(frequency_table, "Teste.txt");
     display_frequency_table(frequency_table);
 
     //-------------------------- Frequency List
@@ -54,8 +65,18 @@ int main()
     fill_frequency_list(frequency_list, frequency_table);
     display_frequency_list(frequency_list);
 
+    //-------------------------- Huffmen Tree
+    huffmen_tree = alloc_huffmen_tree_t();
+    build_huffmen_tree_t(huffmen_tree, frequency_list);
+    printf("\n\tDisplay Huffmen Tree:\n");
+    display_huffmen_tree_t(huffmen_tree->root);
+
+    // ------------------------- Free memory
+
     destroy_frequency_table(frequency_table);
     destroy_frequency_list(frequency_list);
+    destroy_huffmen_tree_t(huffmen_tree);
+
     return 0;
 }
 
@@ -153,7 +174,7 @@ void insert_frequency_list(list_t *frequency_list, node_t *new_node)
             else
             {
                 node_t *temp = frequency_list->head;
-                while (temp != NULL && temp->frequency >= new_node->frequency)
+                while (temp != NULL && temp->frequency > new_node->frequency)
                 {
                     temp = temp->next;
                 }
@@ -251,4 +272,66 @@ void display_frequency_list(list_t *frequency_list)
         printf("<%c> : %u\n", temp->character, temp->frequency);
         temp = temp->next;
     }
+}
+
+huffmen_tree_t *alloc_huffmen_tree_t()
+{
+    huffmen_tree_t *tree = (huffmen_tree_t *)malloc(sizeof(huffmen_tree_t));
+    if (tree)
+    {
+        tree->root = NULL;;
+        return tree;
+    }else
+    {
+        printf("\n\tError memory alocation in \'alloc_huffmen_tree_t\'\n");
+        return NULL;
+    }
+}
+void build_huffmen_tree_t(huffmen_tree_t *huffmen_tree, list_t *frequency_list)
+{
+    if (!huffmen_tree) {
+        printf("\n\tErro huffmen_tree is NULL in \'build_huffmen_tree_t\'\n");
+        return;
+    }
+    if (!frequency_list) {
+        printf("\n\tFrequency_List is NULL in \'build_huffmen_tree_t\'\n");
+        return;
+    }
+    node_t *new_node = (node_t *)malloc(sizeof(node_t));
+    new_node->left = NULL;
+    new_node->right = NULL;
+    new_node->frequency = UINT_MAX;
+    new_node->character = (char) '\0';
+    insert_frequency_list(frequency_list, new_node);
+
+    //int n = frequency_list->size - 1;
+    huffmen_tree->root = frequency_list->head;
+
+    node_t *x = huffmen_tree->root;
+    node_t *y = frequency_list->head->next;
+
+    while (y != NULL && x != NULL) {
+        if (!x->left && !x->right) {
+            x->left = y;
+            y = y->next;
+        }else if (x->left && !x->right) {
+            x->right = y;
+            y = y->next;
+        }else if (x->right && !x->left) {
+            x->left = y;
+            y = y->next;
+        }else {
+            x = x->next;
+        }
+    }
+}
+void destroy_huffmen_tree_t(huffmen_tree_t *huffmen_tree) {
+    if (!huffmen_tree){ return; }
+    free(huffmen_tree);
+}
+void display_huffmen_tree_t(node_t *root) {
+    if (root == NULL){ return; }
+    printf("<%c> : %u\n", root->character, root->frequency);
+    display_huffmen_tree_t(root->left);
+    display_huffmen_tree_t(root->right);
 }
