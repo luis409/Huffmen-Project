@@ -56,17 +56,22 @@ void fill_dictionary(char **dictionary, node_t *root, char *str, int h);
 void display_dictionary(char **dictionary);
 void destroy_dictionary(char **dictionary);
 
+char *code_string(char **dictionary, char *file_name);
+
 int main()
 {
     unsigned int *frequency_table;
     list_t *frequency_list;
     huffmen_tree_t *huffmen_tree;
     char ** dictionary;
+    char *file_name;
 
+    file_name = calloc(256, sizeof(char));
+    file_name = "Teste.txt";
     //-------------------------- Frequency Table
     frequency_table = alloc_frequency_table();
     initialize_frequency_table(frequency_table);
-    fill_frequency_table(frequency_table, "Teste.txt");
+    fill_frequency_table(frequency_table, file_name);
     display_frequency_table(frequency_table);
 
     //-------------------------- Frequency List
@@ -86,6 +91,10 @@ int main()
     dictionary = alloc_dictionary(h);
     build_huffmen_tree_str(dictionary, huffmen_tree, h);
     display_dictionary(dictionary);
+
+    //-------------------------- Code String
+    printf("\n\tCode String:\n");
+    file_name = code_string(dictionary, file_name);
 
     // ------------------------- Free memory
 
@@ -362,7 +371,7 @@ char ** alloc_dictionary(int height) {
         return dictionary;
     }else {
         printf("\n\tError allocation memory failed in \'alloc_dictionary\'\n");
-        return NULL;
+        return nullptr;
     }
 }
 int huffmen_tree_height(node_t *root, int height) {
@@ -395,6 +404,10 @@ void fill_dictionary(char **dictionary, node_t *root, char *str, int h) {
     fill_dictionary(dictionary, root->right, rightStr, h);
 }
 void display_dictionary(char **dictionary) {
+    if (!dictionary) {
+        printf("\n\tDictionary is NULL in \'display_dictionary\'\n");
+        return;
+    }
     printf("\n\tDisplay Dictionary :\n");
     for (int i = 0; i < TAM; i++) {
         if (strcmp(dictionary[i], "") != 0) {
@@ -403,8 +416,36 @@ void display_dictionary(char **dictionary) {
     }
 }
 void destroy_dictionary(char **dictionary) {
+    if (!dictionary){ return; }
     for (int i = 0; i < TAM; i++) {
         free(dictionary[i]);
     }
     free(dictionary);
+}
+
+char *code_string(char **dictionary, char *file_name) {
+    FILE *f = fopen(file_name, "rb");
+    if (f) {
+        int n = strlen(file_name);
+        char *newFileName = calloc((n + 5), sizeof(char));
+        strcpy(newFileName, file_name);
+        strcat(newFileName, ".cod");
+        FILE *fw = fopen(newFileName, "w");
+        if (fw) {
+            unsigned char byte;
+            while (fread(&byte, sizeof(unsigned char), 1, f)) {
+                printf("%s", dictionary[byte % 256]);
+                fprintf(fw, "%s", dictionary[byte % 256]);
+            }printf("\n");
+            fclose(fw);
+            fclose(f);
+            return newFileName;
+        }else {
+            printf("File_name read error in \'code_string\' block one\n");
+            return nullptr;
+        }
+    }else {
+        printf("File_name read error in \'code_string\'\n");
+        return nullptr;
+    }
 }
