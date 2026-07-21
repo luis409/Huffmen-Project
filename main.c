@@ -40,23 +40,14 @@ void destroy_frequency_table(unsigned int *frequency_table);
 list_t *alloc_frequency_list();
 void insert_frequency_list(list_t *frequency_list, node_t *new_node);
 node_t *remove_frequency_list(list_t *frequency_list);
-void fill_frequency_list(list_t *frequency_list, unsigned int *frequency_table);
+void fill_frequency_list(list_t *frequency_list, const unsigned int *frequency_table);
 void destroy_frequency_list(list_t *frequency_list);
 void display_frequency_list(list_t *frequency_list);
 
 huffmen_tree_t *alloc_huffmen_tree_t();
-void build_huffmen_tree_t(huffmen_tree_t *huffmen_tree, list_t *frequency_list);
-void destroy_huffmen_tree_t(huffmen_tree_t *huffmen_tree);
-void display_huffmen_tree_t(node_t *root);
-
-char ** alloc_dictionary(int height);
-int huffmen_tree_height(node_t *root, int height);
-void build_huffmen_tree_str(char ** dictionary, huffmen_tree_t *huffmen_tree, int height);
-void fill_dictionary(char **dictionary, node_t *root, char *str, int h);
-void display_dictionary(char **dictionary);
-void destroy_dictionary(char **dictionary);
-
-char *code_string(char **dictionary, char *file_name);
+node_t *huffmen_tree_build(list_t *frequency_list);
+void display_huffmen_tree(node_t *root);
+void destroy_huffmen_tree(node_t *root);
 
 int main()
 {
@@ -81,27 +72,15 @@ int main()
 
     //-------------------------- Huffmen Tree
     huffmen_tree = alloc_huffmen_tree_t();
-    build_huffmen_tree_t(huffmen_tree, frequency_list);
-    printf("\n\tDisplay Huffmen Tree:\n");
-    display_huffmen_tree_t(huffmen_tree->root);
+    printf("\nHuffmen Tree:\n");
+    huffmen_tree->root = huffmen_tree_build(frequency_list);
+    display_huffmen_tree(huffmen_tree->root);
 
-    //-------------------------- Dictionary
-    int h = huffmen_tree_height(huffmen_tree->root, 0);
-    printf("\n\tHuffmen Tree height: %d\n", h);
-    dictionary = alloc_dictionary(h);
-    build_huffmen_tree_str(dictionary, huffmen_tree, h);
-    display_dictionary(dictionary);
-
-    //-------------------------- Code String
-    printf("\n\tCode String:\n");
-    file_name = code_string(dictionary, file_name);
 
     // ------------------------- Free memory
 
     destroy_frequency_table(frequency_table);
     destroy_frequency_list(frequency_list);
-    destroy_huffmen_tree_t(huffmen_tree);
-    destroy_dictionary(dictionary);
 
     return 0;
 }
@@ -113,7 +92,7 @@ unsigned int *alloc_frequency_table()
     else
     {
         printf("\n\tError allocating frequency_table\n");
-        return NULL;
+        return nullptr;
     }
 }
 void initialize_frequency_table(unsigned int *frequency_table)
@@ -173,85 +152,63 @@ list_t *alloc_frequency_list()
     list_t *frequency_list = (list_t *)malloc(sizeof(list_t));
     if (frequency_list)
     {
-        frequency_list->head = NULL;
-        frequency_list->tail = NULL;
+        frequency_list->head = nullptr;
+        frequency_list->tail = nullptr;
         frequency_list->size = 0;
         return frequency_list;
     }else
     {
         printf("\n\tError allocating frequency_list\n");
-        return NULL;
+        return nullptr;
     }
 }
 void insert_frequency_list(list_t *frequency_list, node_t *new_node)
 {
-    if (frequency_list)
-    {
-        if (new_node)
-        {
-            if (frequency_list->size == 0)
-            {
-                new_node->next = NULL;
-                new_node->prev = NULL;
-                frequency_list->head = new_node;
+    if (frequency_list && new_node) {
+        if (frequency_list->size <= 0) {
+            new_node->next = nullptr;
+            new_node->prev = nullptr;
+            frequency_list->head = new_node;
+            frequency_list->tail = new_node;
+        }else {
+            node_t *current = frequency_list->head;
+            while (current->next && current->next->frequency < new_node->frequency) {
+                current = current->next;
+            }
+            if (!current->next) {
+                new_node->next = nullptr;
+                new_node->prev = frequency_list->tail;
+                frequency_list->tail->next = new_node;
                 frequency_list->tail = new_node;
-                //frequency_list->size++;
+            }else {
+                new_node->next = current->next;
+                new_node->prev = current;
+                current->next = new_node;
+                current->next->prev = new_node;
             }
-            else
-            {
-                node_t *temp = frequency_list->head;
-                while (temp != NULL && temp->frequency > new_node->frequency)
-                {
-                    temp = temp->next;
-                }
-                if (temp == NULL)
-                {
-                    new_node->next = NULL;
-                    new_node->prev = frequency_list->tail;
-                    frequency_list->tail->next = new_node;
-                    frequency_list->tail = new_node;
-                    //frequency_list->size++;
-                }else
-                {
-                    if (temp->prev == NULL)
-                    {
-                        new_node->prev = NULL;
-                        new_node->next = frequency_list->head;
-                        frequency_list->head->prev = new_node;
-                        frequency_list->head = new_node;
-                    }else
-                    {
-                        new_node->prev = temp->prev;
-                        new_node->next = temp;
-                        temp->prev->next = new_node;
-                        temp->prev = new_node;
-                    }
-                    //frequency_list->size++;
-                }
-            }
-            frequency_list->size++;
-        }else{ printf("\n\tnew_node is NULL in insert_frequency_list\n"); }
-    }else{ printf("\n\tfrequency_list is NULL in insert_frequency_list\n"); }
+        }
+        frequency_list->size++;
+    }
 }
 node_t *remove_frequency_list(list_t *frequency_list)
 {
     if (!frequency_list)
     {
         printf("\n\tFrequency_List is NULL in \'remove_frequency_list\'\n");
-        return NULL;
+        return nullptr;
     }
     if (frequency_list->size <= 0)
     {
         printf("Frequency_List is empty in \'remove_frequency_list\'\n");
-        return NULL;
+        return nullptr;
     }
     node_t *temp = frequency_list->head;
     frequency_list->head = frequency_list->head->next;
     frequency_list->size--;
-    temp->next = NULL;
+    temp->next = nullptr;
     return temp;
 }
-void fill_frequency_list(list_t *frequency_list, unsigned int *frequency_table)
+void fill_frequency_list(list_t *frequency_list, const unsigned int *frequency_table)
 {
     if (!frequency_table)
     {
@@ -268,8 +225,8 @@ void fill_frequency_list(list_t *frequency_list, unsigned int *frequency_table)
         if (frequency_table[i] > 0)
         {
             node_t *new_node = (node_t *)malloc(sizeof(node_t));
-            new_node->left = NULL;
-            new_node->right = NULL;
+            new_node->left = nullptr;
+            new_node->right = nullptr;
             new_node->frequency = frequency_table[i];
             new_node->character = (char) i;
             insert_frequency_list(frequency_list, new_node);
@@ -279,9 +236,9 @@ void fill_frequency_list(list_t *frequency_list, unsigned int *frequency_table)
 void destroy_frequency_list(list_t *frequency_list)
 {
     if (!frequency_list){ return; }
-    node_t *y = NULL;
+    node_t *y = nullptr;
     node_t *x = frequency_list->head;
-    while (x != NULL)
+    while (x != nullptr)
     {
         y = x;
         x = x->next;
@@ -300,152 +257,44 @@ void display_frequency_list(list_t *frequency_list)
     }
 }
 
-huffmen_tree_t *alloc_huffmen_tree_t()
-{
-    huffmen_tree_t *tree = (huffmen_tree_t *)malloc(sizeof(huffmen_tree_t));
-    if (tree)
-    {
-        tree->root = NULL;;
-        return tree;
-    }else
-    {
-        printf("\n\tError memory alocation in \'alloc_huffmen_tree_t\'\n");
-        return NULL;
-    }
-}
-void build_huffmen_tree_t(huffmen_tree_t *huffmen_tree, list_t *frequency_list)
-{
-    if (!huffmen_tree) {
-        printf("\n\tErro huffmen_tree is NULL in \'build_huffmen_tree_t\'\n");
-        return;
-    }
-    if (!frequency_list) {
-        printf("\n\tFrequency_List is NULL in \'build_huffmen_tree_t\'\n");
-        return;
-    }
-    node_t *new_node = (node_t *)malloc(sizeof(node_t));
-    new_node->left = NULL;
-    new_node->right = NULL;
-    new_node->frequency = UINT_MAX;
-    new_node->character = (char) '\0';
-    insert_frequency_list(frequency_list, new_node);
-
-    //int n = frequency_list->size - 1;
-    huffmen_tree->root = frequency_list->head;
-
-    node_t *x = huffmen_tree->root;
-    node_t *y = frequency_list->head->next;
-
-    while (y != NULL && x != NULL) {
-        if (!x->left && !x->right) {
-            x->left = y;
-            y = y->next;
-        }else if (x->left && !x->right) {
-            x->right = y;
-            y = y->next;
-        }else if (x->right && !x->left) {
-            x->left = y;
-            y = y->next;
-        }else {
-            x = x->next;
-        }
-    }
-}
-void destroy_huffmen_tree_t(huffmen_tree_t *huffmen_tree) {
-    if (!huffmen_tree){ return; }
-    free(huffmen_tree);
-}
-void display_huffmen_tree_t(node_t *root) {
-    if (root == NULL){ return; }
-    printf("<%c> : %u\n", root->character, root->frequency);
-    display_huffmen_tree_t(root->left);
-    display_huffmen_tree_t(root->right);
-}
-
-char ** alloc_dictionary(int height) {
-    char ** dictionary = (char **)malloc(sizeof(char *) * TAM);
-    if (dictionary) {
-        for (int i = 0; i < TAM; i++) {
-            dictionary[i] = calloc(height + 1, sizeof(char));
-        }
-        return dictionary;
+huffmen_tree_t *alloc_huffmen_tree_t() {
+    huffmen_tree_t *newTree = (huffmen_tree_t *)malloc(sizeof(huffmen_tree_t));
+    if (newTree) {
+        newTree->root = nullptr;
+        return newTree;
     }else {
-        printf("\n\tError allocation memory failed in \'alloc_dictionary\'\n");
         return nullptr;
     }
 }
-int huffmen_tree_height(node_t *root, int height) {
-    if (root == NULL){ return height; }
-    int left_height = huffmen_tree_height(root->left, height) + 1;
-    int right_height = huffmen_tree_height(root->right, height) + 1;
-    return left_height > right_height ? left_height : right_height;
-}
-void build_huffmen_tree_str(char ** dictionary, huffmen_tree_t *huffmen_tree, int height) {
-    fill_dictionary(dictionary, huffmen_tree->root->left, "0", height);
-    fill_dictionary(dictionary, huffmen_tree->root->right, "1", height);
-}
-void fill_dictionary(char **dictionary, node_t *root, char *str, int h) {
-    if (root == NULL) { return; }
-    if (dictionary == NULL) {
-        printf("\n\tError dictionary is NULL in \'fill_dictionary\'\n");
-        return;
-    }
-    unsigned char idx = (unsigned char) root->character;
-    strcpy(dictionary[idx], str);
+node_t *huffmen_tree_build(list_t *frequency_list) {
+    node_t *left, *right, *newNode;
+    while (frequency_list->size > 1) {
+        left = remove_frequency_list(frequency_list);
+        right = remove_frequency_list(frequency_list);
+        newNode = (node_t * )malloc(sizeof(node_t));
+        newNode->character = '\0';
+        newNode->frequency = 0;
 
-    char *leftStr = calloc(h + 1, sizeof(char));
-    strcpy(leftStr, str);
-    char *rightStr = calloc(h + 1, sizeof(char));
-    strcpy(rightStr, str);
+        if (left) { newNode->frequency += left->frequency; }
+        if (right) { newNode->frequency += right->frequency; }
 
-    strcat(leftStr, "0");
-    fill_dictionary(dictionary, root->left, leftStr, h);
-    strcat(rightStr, "1");
-    fill_dictionary(dictionary, root->right, rightStr, h);
+        newNode->left = left;
+        newNode->right = right;
+        newNode->next = nullptr;
+        newNode->prev = nullptr;
+        insert_frequency_list(frequency_list, newNode);
+    }
+    return frequency_list->head;
 }
-void display_dictionary(char **dictionary) {
-    if (!dictionary) {
-        printf("\n\tDictionary is NULL in \'display_dictionary\'\n");
-        return;
-    }
-    printf("\n\tDisplay Dictionary :\n");
-    for (int i = 0; i < TAM; i++) {
-        if (strcmp(dictionary[i], "") != 0) {
-            printf("<%c> : %s\n", i, dictionary[i]);
-        }
-    }
+void display_huffmen_tree(node_t *root) {
+    if (!root) return;
+    display_huffmen_tree(root->left);
+    printf("<%c> : %d\n", root->character, root->frequency);
+    display_huffmen_tree(root->right);
 }
-void destroy_dictionary(char **dictionary) {
-    if (!dictionary){ return; }
-    for (int i = 0; i < TAM; i++) {
-        free(dictionary[i]);
-    }
-    free(dictionary);
-}
-
-char *code_string(char **dictionary, char *file_name) {
-    FILE *f = fopen(file_name, "rb");
-    if (f) {
-        int n = strlen(file_name);
-        char *newFileName = calloc((n + 5), sizeof(char));
-        strcpy(newFileName, file_name);
-        strcat(newFileName, ".cod");
-        FILE *fw = fopen(newFileName, "w");
-        if (fw) {
-            unsigned char byte;
-            while (fread(&byte, sizeof(unsigned char), 1, f)) {
-                printf("%s", dictionary[byte % 256]);
-                fprintf(fw, "%s", dictionary[byte % 256]);
-            }printf("\n");
-            fclose(fw);
-            fclose(f);
-            return newFileName;
-        }else {
-            printf("File_name read error in \'code_string\' block one\n");
-            return nullptr;
-        }
-    }else {
-        printf("File_name read error in \'code_string\'\n");
-        return nullptr;
-    }
+void destroy_huffmen_tree(node_t *root) {
+    if (!root) return;
+    destroy_huffmen_tree(root->left);
+    destroy_huffmen_tree(root->right);
+    free(root);
 }
