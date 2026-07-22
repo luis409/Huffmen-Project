@@ -47,7 +47,13 @@ void display_frequency_list(list_t *frequency_list);
 huffmen_tree_t *alloc_huffmen_tree_t();
 node_t *huffmen_tree_build(list_t *frequency_list);
 void display_huffmen_tree(node_t *root);
+int tree_height(node_t *root, int height);
 void destroy_huffmen_tree(node_t *root);
+
+char ** alloc_dictionary(int height);
+void build_dictionary(char **dictionary, node_t *root, char *str);
+void display_dictionary(char **dictionary);
+void destroy_dictionary(char **dictionary);
 
 int main()
 {
@@ -76,11 +82,18 @@ int main()
     huffmen_tree->root = huffmen_tree_build(frequency_list);
     display_huffmen_tree(huffmen_tree->root);
 
+    //-------------------------- Dictionary
+    int h = tree_height(huffmen_tree->root, 0);
+    dictionary = alloc_dictionary(h);
+    build_dictionary(dictionary, huffmen_tree->root, "");
+    display_dictionary(dictionary);
 
     // ------------------------- Free memory
 
     destroy_frequency_table(frequency_table);
     destroy_frequency_list(frequency_list);
+    //destroy_huffmen_tree(huffmen_tree->root);
+    destroy_dictionary(dictionary);
 
     return 0;
 }
@@ -170,6 +183,11 @@ void insert_frequency_list(list_t *frequency_list, node_t *new_node)
             new_node->prev = nullptr;
             frequency_list->head = new_node;
             frequency_list->tail = new_node;
+        }else if (frequency_list->head->frequency > new_node->frequency) {
+            new_node->next = frequency_list->head;
+            new_node->prev = nullptr;
+            frequency_list->head->prev = new_node;
+            frequency_list->head = new_node;
         }else {
             node_t *current = frequency_list->head;
             while (current->next && current->next->frequency < new_node->frequency) {
@@ -292,9 +310,51 @@ void display_huffmen_tree(node_t *root) {
     printf("<%c> : %d\n", root->character, root->frequency);
     display_huffmen_tree(root->right);
 }
+int tree_height(node_t *root, int height) {
+    if (!root) return height;
+    int left_height = tree_height(root->left, height) + 1;
+    int right_height = tree_height(root->right, height) + 1;
+    return left_height >= right_height ? left_height : right_height;
+}
 void destroy_huffmen_tree(node_t *root) {
     if (!root) return;
     destroy_huffmen_tree(root->left);
     destroy_huffmen_tree(root->right);
     free(root);
+}
+char ** alloc_dictionary(int height) {
+    char ** dictionary = (char **)malloc(sizeof(char *) * TAM);
+    for (int i = 0; i < TAM; i++) {
+        dictionary[i] = calloc(height + 1, sizeof(char));
+    }
+    return dictionary;
+}
+void build_dictionary(char **dictionary, node_t *root, char *str) {
+    if (!root) return;
+    if (root->left == nullptr && root->right == nullptr) {
+        dictionary[root->character] = str;
+    }
+    char *left_str = calloc(strlen(str) + 1, sizeof(char));
+    strcpy(left_str, str);
+    strcat(left_str, "0");
+    char *right_str = calloc(strlen(str) + 1, sizeof(char));
+    strcpy(right_str, str);
+    strcat(left_str, "1");
+    build_dictionary(dictionary, root->left, left_str);
+    build_dictionary(dictionary, root->right, right_str);
+}
+void display_dictionary(char **dictionary) {
+    printf("\n\tDisplaying dictionary \n");
+    for (int i = 0; i < TAM; i++) {
+        if ((strcmp(dictionary[i], "") != 0)) {
+            printf("<%c> : %s\n", i, dictionary[i]);
+        }
+    }
+}
+void destroy_dictionary(char **dictionary) {
+    if (!dictionary) {return;}
+    for (int i = 0; i < TAM; i++) {
+        free(dictionary[i]);
+    }
+    free(dictionary);
 }
